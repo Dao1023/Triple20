@@ -33,15 +33,19 @@ class MainActivity : ComponentActivity() {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            android.util.Log.d("MainActivity", "onServiceConnected")
             val binder = service as TimerService.LocalBinder
             timerService = binder.getService()
             timerService?.onTimerStateChanged = { state ->
+                android.util.Log.d("MainActivity", "State changed: $state")
                 timerState = state
             }
             timerState = timerService?.getCurrentState() ?: TimerState()
+            android.util.Log.d("MainActivity", "Initial state: $timerState")
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            android.util.Log.d("MainActivity", "onServiceDisconnected")
             timerService = null
         }
     }
@@ -109,7 +113,8 @@ class MainActivity : ComponentActivity() {
 
     private fun startTimer() {
         timerService?.let {
-            val intent = Intent(TimerService.ACTION_START).apply {
+            val intent = Intent(this, TimerService::class.java).apply {
+                action = TimerService.ACTION_START
                 putExtra(TimerService.EXTRA_MINUTES, it.getCurrentState().minutes)
                 putExtra(TimerService.EXTRA_SECONDS, it.getCurrentState().seconds)
             }
@@ -118,7 +123,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun pauseTimer() {
-        val intent = Intent(TimerService.ACTION_PAUSE)
+        val intent = Intent(this, TimerService::class.java).apply {
+            action = TimerService.ACTION_PAUSE
+        }
         startService(intent)
     }
 
@@ -135,16 +142,14 @@ fun TimerScreen(
     onPauseClick: () -> Unit,
     onTimeChanged: (Int, Int) -> Unit
 ) {
-    // 可变状态用于滚动
+    // 可变状态用于滚动编辑
     var minutes by remember { mutableIntStateOf(timerState.minutes) }
     var seconds by remember { mutableIntStateOf(timerState.seconds) }
 
-    // 监听timerState变化更新本地状态
+    // 监听timerState变化，始终更新本地状态
     LaunchedEffect(timerState) {
-        if (timerState.isPaused || !timerState.isRunning) {
-            minutes = timerState.minutes
-            seconds = timerState.seconds
-        }
+        minutes = timerState.minutes
+        seconds = timerState.seconds
     }
 
     Column(

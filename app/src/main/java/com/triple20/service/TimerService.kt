@@ -76,6 +76,8 @@ class TimerService : Service() {
      * 开始计时
      */
     private fun startTimer(minutes: Int, seconds: Int) {
+        android.util.Log.d("TimerService", "startTimer called: $minutes:$seconds, callback: ${onTimerStateChanged != null}")
+
         timerState = timerState.copy(
             minutes = minutes,
             seconds = seconds,
@@ -88,6 +90,7 @@ class TimerService : Service() {
 
         timerRunnable = object : Runnable {
             override fun run() {
+                android.util.Log.d("TimerService", "Timer tick: $timerState")
                 if (!timerState.isRunning || timerState.isPaused) {
                     notifyStateChanged()
                     return
@@ -114,6 +117,7 @@ class TimerService : Service() {
 
         handler.post(timerRunnable!!)
         notifyStateChanged()
+        android.util.Log.d("TimerService", "startTimer completed, state: $timerState")
     }
 
     /**
