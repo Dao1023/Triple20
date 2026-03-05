@@ -10,7 +10,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.Manifest
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.triple20.R
 import com.triple20.model.TimerState
 import com.triple20.overlay.RestOverlayView
@@ -171,6 +173,15 @@ class TimerService : Service() {
      * 显示10秒预告通知
      */
     private fun showWarningNotification() {
+        // 检查通知权限（Android 13+）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            if (permissionCheck != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.d("TimerService", "No notification permission, skipping notification")
+                return
+            }
+        }
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(getString(R.string.notification_message))
@@ -181,6 +192,7 @@ class TimerService : Service() {
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID, notification)
+        android.util.Log.d("TimerService", "Warning notification shown")
     }
 
     /**

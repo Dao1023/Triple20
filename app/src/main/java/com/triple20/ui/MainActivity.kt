@@ -1,5 +1,6 @@
 package com.triple20.ui
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -57,12 +59,24 @@ class MainActivity : ComponentActivity() {
         // 权限授予结果处理
     }
 
+    // 通知权限请求（Android 13+）
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        android.util.Log.d("MainActivity", "Notification permission granted: $isGranted")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // 检查并请求悬浮窗权限
         if (!hasOverlayPermission()) {
             requestOverlayPermission()
+        }
+
+        // 检查并请求通知权限（Android 13+）
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestNotificationPermission()
         }
 
         // 启动服务
@@ -108,6 +122,12 @@ class MainActivity : ComponentActivity() {
                 Uri.parse("package:$packageName")
             )
             overlayPermissionLauncher.launch(intent)
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
