@@ -209,8 +209,12 @@ class TimerService : Service() {
                 }
             },
             onScreenOn = {
-                // 亮屏时保持暂停状态，需要用户手动恢复
-                // 不自动恢复，让用户自己决定
+                // 亮屏时自动恢复计时
+                if (timerState.isRunning && timerState.isPaused) {
+                    timerState = timerState.copy(isPaused = false)
+                    timerRunnable?.let { handler.post(it) }
+                    notifyStateChanged()
+                }
             }
         )
 

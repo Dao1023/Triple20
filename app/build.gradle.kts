@@ -21,7 +21,6 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
 
@@ -32,6 +31,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 使用 debug keystore 签名（适合个人使用）
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
