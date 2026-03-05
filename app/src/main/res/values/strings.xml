@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">20-20-20</string>
+    <string name="rest_message">起身倒杯水吧</string>
+    <string name="start">开始</string>
+    <string name="pause">暂停</string>
+    <string name="notification_title">休息提醒</string>
+    <string name="notification_message">还有10秒即将开始休息</string>
+</resources>
