@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import com.triple20.R
+import com.triple20.model.RestTips
 
 /**
  * 全屏休息遮罩
@@ -18,9 +19,17 @@ import com.triple20.R
  */
 class RestOverlayView(private val context: Context) {
 
+    companion object {
+        // 护眼配色方案：豆沙绿背景 + 深绿色文字
+        private const val BACKGROUND_COLOR = -0xbd6910 // #C7EDCC 豆沙绿
+        private const val TEXT_COLOR = -0xff0001 // #006400 深绿色
+        private const val PROGRESS_COLOR = -0xc780de // #2E7D32 中绿色
+    }
+
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var overlayView: FrameLayout? = null
     private var progressBar: ProgressBar? = null
+    private var tipTextView: TextView? = null
     private var remainingSeconds = 20
     private val handler = Handler(Looper.getMainLooper())
     private var countdownRunnable: Runnable? = null
@@ -65,6 +74,7 @@ class RestOverlayView(private val context: Context) {
             windowManager.removeView(it)
             overlayView = null
             progressBar = null
+            tipTextView = null
             remainingSeconds = 20
         }
     }
@@ -74,16 +84,18 @@ class RestOverlayView(private val context: Context) {
      */
     private fun createOverlayView(): FrameLayout {
         return FrameLayout(context).apply {
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(BACKGROUND_COLOR)
 
             // 提示文字
-            addView(TextView(context).apply {
-                text = context.getString(R.string.rest_message)
-                setTextColor(Color.WHITE)
+            tipTextView = TextView(context).apply {
+                text = RestTips.getRandomTip()
+                setTextColor(TEXT_COLOR)
                 textSize = 32f
                 setTextAppearance(android.R.style.TextAppearance_Large)
                 gravity = Gravity.CENTER
-            }, FrameLayout.LayoutParams(
+                setPadding(64, 0, 64, 0)
+            }
+            addView(tipTextView, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER
@@ -94,8 +106,10 @@ class RestOverlayView(private val context: Context) {
                 max = 20
                 progress = 20
                 isIndeterminate = false
+                indeterminateTintList = android.content.res.ColorStateList.valueOf(PROGRESS_COLOR)
+                progressTintList = android.content.res.ColorStateList.valueOf(PROGRESS_COLOR)
             }
-            addView(progressBar!!, FrameLayout.LayoutParams(
+            addView(progressBar, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM
