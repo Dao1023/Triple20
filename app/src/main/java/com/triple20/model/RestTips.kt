@@ -1,11 +1,19 @@
 package com.triple20.model
 
+import android.content.Context
+import android.content.SharedPreferences
+import org.json.JSONArray
+
 /**
  * 休息提示语库
  * 来源：Stretchly
+ * 支持用户自定义编辑，持久化到 SharedPreferences
  */
 object RestTips {
-    private val tips = listOf(
+    private const val PREFS_NAME = "rest_tips"
+    private const val KEY_TIPS = "tips"
+
+    private val defaultTips = listOf(
         "去倒杯水喝吧",
         "慢慢向左看，然后向右看",
         "慢慢向上看，然后向下看",
@@ -59,10 +67,32 @@ object RestTips {
         "坐在椅子边缘或地板上，脚掌并拢，用肘部轻轻按压以拉伸大腿内侧"
     )
 
+    private var prefs: SharedPreferences? = null
+
+    fun init(context: Context) {
+        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        if (!prefs!!.contains(KEY_TIPS)) {
+            saveTips(defaultTips)
+        }
+    }
+
+    fun getTips(): List<String> {
+        val p = prefs ?: return defaultTips
+        val json = p.getString(KEY_TIPS, null) ?: return defaultTips
+        val arr = JSONArray(json)
+        return (0 until arr.length()).map { arr.getString(it) }
+    }
+
+    fun saveTips(tips: List<String>) {
+        val arr = JSONArray(tips)
+        prefs?.edit()?.putString(KEY_TIPS, arr.toString())?.apply()
+    }
+
     /**
      * 获取随机提示语
      */
     fun getRandomTip(): String {
-        return tips.random()
+        val tips = getTips()
+        return if (tips.isNotEmpty()) tips.random() else "休息一下吧"
     }
 }
