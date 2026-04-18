@@ -16,6 +16,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.triple20.model.RestTips
 import com.triple20.model.TimerState
 import com.triple20.service.TimerService
 import com.triple20.ui.theme.Triple20Theme
@@ -69,6 +75,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 初始化提示语持久化
+        RestTips.init(applicationContext)
+
         // 检查并请求悬浮窗权限
         if (!hasOverlayPermission()) {
             requestOverlayPermission()
@@ -91,12 +100,21 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TimerScreen(
-                        timerState = timerState,
-                        onStartClick = { startTimer() },
-                        onPauseClick = { pauseTimer() },
-                        onTimeChanged = { minutes, seconds -> updateTime(minutes, seconds) }
-                    )
+                    var showTipsEditor by remember { mutableStateOf(false) }
+
+                    if (showTipsEditor) {
+                        TipsEditScreen(
+                            onExit = { showTipsEditor = false }
+                        )
+                    } else {
+                        TimerScreen(
+                            timerState = timerState,
+                            onStartClick = { startTimer() },
+                            onPauseClick = { pauseTimer() },
+                            onTimeChanged = { minutes, seconds -> updateTime(minutes, seconds) },
+                            onEditTips = { showTipsEditor = true }
+                        )
+                    }
                 }
             }
         }
@@ -160,7 +178,8 @@ fun TimerScreen(
     timerState: TimerState,
     onStartClick: () -> Unit,
     onPauseClick: () -> Unit,
-    onTimeChanged: (Int, Int) -> Unit
+    onTimeChanged: (Int, Int) -> Unit,
+    onEditTips: () -> Unit = {}
 ) {
     // 可变状态用于滚动编辑
     var minutes by remember { mutableIntStateOf(timerState.minutes) }
@@ -172,71 +191,87 @@ fun TimerScreen(
         seconds = timerState.seconds
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // 时间显示
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // 分钟
-            ScrollableNumber(
-                value = minutes,
-                range = 0..99,
-                enabled = timerState.isPaused || !timerState.isRunning,
-                onValueChange = { newMinutes ->
-                    minutes = newMinutes
-                    onTimeChanged(minutes, seconds)
-                }
-            )
+            // 时间显示
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                // 分钟
+                ScrollableNumber(
+                    value = minutes,
+                    range = 0..99,
+                    enabled = timerState.isPaused || !timerState.isRunning,
+                    onValueChange = { newMinutes ->
+                        minutes = newMinutes
+                        onTimeChanged(minutes, seconds)
+                    }
+                )
 
-            // 冒号
-            Text(
-                text = ":",
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
+                // 冒号
+                Text(
+                    text = ":",
+                    fontSize = 64.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
 
-            // 秒钟
-            ScrollableNumber(
-                value = seconds,
-                range = 0..59,
-                enabled = timerState.isPaused || !timerState.isRunning,
-                onValueChange = { newSeconds ->
-                    seconds = newSeconds
-                    onTimeChanged(minutes, seconds)
-                }
-            )
+                // 秒钟
+                ScrollableNumber(
+                    value = seconds,
+                    range = 0..59,
+                    enabled = timerState.isPaused || !timerState.isRunning,
+                    onValueChange = { newSeconds ->
+                        seconds = newSeconds
+                        onTimeChanged(minutes, seconds)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(64.dp))
+
+            // 开始/暂停按钮
+            Button(
+                onClick = {
+                    if (timerState.isRunning && !timerState.isPaused) {
+                        onPauseClick()
+                    } else {
+                        onStartClick()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                Text(
+                    text = if (timerState.isRunning && !timerState.isPaused) {
+                        "暂停"
+                    } else {
+                        "开始"
+                    },
+                    fontSize = 20.sp
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(64.dp))
-
-        // 开始/暂停按钮
-        Button(
-            onClick = {
-                if (timerState.isRunning && !timerState.isPaused) {
-                    onPauseClick()
-                } else {
-                    onStartClick()
-                }
-            },
+        // 设置按钮（右上角）
+        IconButton(
+            onClick = onEditTips,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
         ) {
-            Text(
-                text = if (timerState.isRunning && !timerState.isPaused) {
-                    "暂停"
-                } else {
-                    "开始"
-                },
-                fontSize = 20.sp
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "编辑提示语",
+                modifier = Modifier.size(32.dp)
             )
         }
     }
@@ -291,5 +326,80 @@ fun ScrollableNumber(
                     }
                 )
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TipsEditScreen(onExit: () -> Unit) {
+    val tips = remember { mutableStateListOf(*RestTips.getTips().toTypedArray()) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 顶部栏
+        TopAppBar(
+            title = { Text("编辑提示语") },
+            navigationIcon = {
+                IconButton(onClick = onExit) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "退出"
+                    )
+                }
+            }
+        )
+
+        // 提示语列表
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(tips.size) { index ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tips[index],
+                        onValueChange = { newText ->
+                            tips[index] = newText
+                            RestTips.saveTips(tips.toList())
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(
+                        onClick = {
+                            tips.removeAt(index)
+                            RestTips.saveTips(tips.toList())
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "删除",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
+
+        // 添加按钮
+        FilledTonalButton(
+            onClick = {
+                tips.add("")
+                RestTips.saveTips(tips.toList())
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("添加提示语")
+        }
     }
 }
